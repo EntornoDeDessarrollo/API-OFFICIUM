@@ -17,6 +17,7 @@ return new class extends Migration
             $table->text('Contenido');
             $table->timestamp('FechaPublicacion');
             $table->integer('Like')->default(0);
+            $table->string('Archivo')->nullable();
             $table->timestamps();
 
             $table->foreign('IDUsuario')->references('IDUsuario')->on('users')->onDelete('cascade');

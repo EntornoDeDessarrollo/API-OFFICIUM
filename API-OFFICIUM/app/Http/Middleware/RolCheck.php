@@ -19,6 +19,7 @@ class RolCheck
     public function handle(Request $request, Closure $next, string $roles): Response
     {
         // Convertimos los roles separados por comas en un array
+
         $rolesArray = explode('|', $roles);
 
         Log::info("Roles: " . implode('|', $rolesArray));

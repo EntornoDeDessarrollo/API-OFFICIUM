@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('oferta_empleos', function (Blueprint $table) {
             $table->id('IDOferta');
-            $table->unsignedBigInteger('IDEmpresario');
+            $table->unsignedBigInteger('IDEmpresa');
             $table->unsignedBigInteger('IDCategoria');
             $table->string('Titulo');
             $table->text('Descripcion');
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamp('FechaPublicacion');
             $table->timestamps();
 
-            $table->foreign('IDEmpresario')->references('IDEmpresario')->on('empresas')->onDelete('cascade');
+            $table->foreign('IDEmpresa')->references('IDEmpresa')->on('empresas')->onDelete('cascade');
             $table->foreign('IDCategoria')->references('IDCategoria')->on('categorias');
         });
     }

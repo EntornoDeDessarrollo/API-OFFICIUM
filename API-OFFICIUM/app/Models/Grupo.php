@@ -9,7 +9,8 @@ class Grupo extends Model
     //
     protected $primaryKey = 'IDGrupo';
     public $timestamps = false;
-    protected $fillable = ['Nombre', 'Descripcion', 'Privacidad'];
+    protected $fillable = ['Nombre', 'Descripcion', 'Privacidad','Foto','Propietario'];
 
-    public function user() { return $this->belongsToMany(User::class, 'usuario_grupos', 'IDGrupo', 'IDUsuario'); }
+    public function users() { return $this->belongsToMany(User::class, 'usuario_grupos', 'IDGrupo', 'IDUsuario'); }
+    public function propietario(){ return $this->belongsTo(User::class, 'Propietario'); }
 }

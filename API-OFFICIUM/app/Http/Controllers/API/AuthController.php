@@ -280,6 +280,18 @@ class AuthController extends Controller
         return $password;
     }
 
+    public function listGroupUser()
+    {
+        $userId = auth()->id();
+        $user = User::findOrFail($userId)->load('grupos'); // Asumiendo relación 'grupos' en el modelo User
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Grupos del usuario listados correctamente.',
+            'data' => $user->grupos
+        ], 200);
+    }
+
 
 
 }

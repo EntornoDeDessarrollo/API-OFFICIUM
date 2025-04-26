@@ -29,6 +29,7 @@ class User extends Authenticatable
     ];
     public function empresa() { return $this->hasOne(Empresa::class, 'IDUsuario'); }
     public function desempleado() { return $this->hasOne(Desempleado::class, 'IDUsuario'); }
+
     public function administrador() { return $this->hasOne(Administrador::class, 'IDUsuario'); }
     public function publicaciones() { return $this->hasMany(Publicacion::class, 'IDUsuario'); }
     public function comentarios() { return $this->hasMany(Comentario::class, 'IDUsuario'); }

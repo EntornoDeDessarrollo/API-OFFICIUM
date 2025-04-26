@@ -21,6 +21,9 @@ class DocumentoController extends Controller
     public function index()
     {
         //
+        // return response()->json([
+        //     "status"=>"200"
+        // ]);
     }
 
     /**
@@ -40,19 +43,10 @@ class DocumentoController extends Controller
         // Obtén el ID del usuario autenticado por Sanctum
         $userId = auth()->id();
 
-        // Verifica si el ID del usuario autenticado coincide con el IDUsuario de la empresa
-        if ($request->IDUsuario != $userId) {
-            return response()->json([
-                "StatusCode" => 403,
-                "ReasonPhrase" => "Acceso no autorizado.",
-                "Message" => "No tienes permiso para modificar esta empresa. "."UsuarioID Token :".$userId." UsuarioID Fomr :".$request->IDUsuario
-            ], 403); // 403 (Forbidden) si no coincide
-        }
-
         $validator = Validator::make($request->all(), [
-            'IDUsuario' => 'required|exists:users,IDUsuario',
+            //'IDUsuario' => 'required|exists:users,IDUsuario',
             'IDPublicacion' => 'nullable|exists:publicaciones,IDPublicacion', // Opcional, dependiendo de tu lógica
-            'Tipo' => 'required|string|in:Foto,Video,PDF,otro', // Define los tipos permitidos
+            'Tipo' => 'required|string|in:Foto,Video,PDF,Publicacion', // Define los tipos permitidos
             'Archivo' => 'required|file|max:20480', // Ajusta el tamaño máximo según necesites (en KB)
         ]);
 
@@ -66,9 +60,7 @@ class DocumentoController extends Controller
 
         try {
 
-
-
-            $user = User::findOrFail($request->input('IDUsuario'));
+            $user = User::findOrFail($userId);
             $tipoDocumento = $request->input('Tipo');
             $archivo = $request->file('Archivo');
             $nombreArchivoOriginal = $archivo->getClientOriginalName();
@@ -120,18 +112,18 @@ class DocumentoController extends Controller
                 'Message' => 'El documento se ha subido y guardado con éxito.',
                 'data' => $documento
             ], 201); // 201 Created
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                "StatusCode" => 404,
-                "ReasonPhrase" => "No encontrado.",
-                "Message" => "El usuario con el ID proporcionado no existe."
-            ], 404);
-        } catch (\Exception $e) {
+        } catch (QueryException $e) {
+
+            // Manejar otros errores de base de datos
             return response()->json([
                 "StatusCode" => 500,
                 "ReasonPhrase" => "Error interno del servidor.",
-                "Message" => "Ocurrió un error al intentar subir y guardar el documento." . "\n" . $e->getMessage()
-            ], 500);
+                "Message" => "Ocurrió un error al registrar el usuario.?"."\n".$e->getMessage(),
+                'SQL error: ' . $e->getMessage(),
+                'SQL query: ' . $e->getSql(),
+                'Bindings: ', $e->getBindings()
+
+            ], 500); // 500 (Internal Server Error) para otros errores
         }
     }
 
@@ -141,6 +133,24 @@ class DocumentoController extends Controller
     public function show(Documento $documento)
     {
         //
+        // $userId = auth()->id(); // Obtén el ID del usuario autenticado
+
+        // // Verifica si el usuario autenticado es el propietario del grupo
+        // if ($documento->IDUsuario !== $userId) {
+        //     return response()->json([
+        //         "StatusCode" => 403,
+        //         "ReasonPhrase" => "Acceso no autorizado.",
+        //         "Message" => "No tienes permiso para ver este documento."
+        //     ], 403); // 403 (Forbidden)
+        // }
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Grupo encontrado correctamente',
+            'Message' => 'La información del grupo ha sido encontrada con éxito.',
+            'Data' => $documento,
+
+        ]);
     }
 
     /**
@@ -167,40 +177,55 @@ class DocumentoController extends Controller
         //
         $userId = auth()->id();
 
-    // Verifica si el usuario autenticado es el propietario del documento
-    if ($documento->IDUsuario !== $userId) {
-        return response()->json([
-            "StatusCode" => 403,
-            "ReasonPhrase" => "Acceso no autorizado.",
-            "Message" => "No tienes permiso para eliminar este documento."
-        ], 403); // 403 (Forbidden)
-    }
-
-    try {
-        // Eliminar el archivo del sistema de archivos
-        if ($documento->URL) {
-            $rutaArchivo = str_replace(Storage::url(''), '', $documento->URL);
-            if (Storage::disk('public')->exists($rutaArchivo)) {
-                Storage::disk('public')->delete($rutaArchivo);
-            }
+        // Verifica si el usuario autenticado es el propietario del documento
+        if ($documento->IDUsuario !== $userId) {
+            return response()->json([
+                "StatusCode" => 403,
+                "ReasonPhrase" => "Acceso no autorizado.",
+                "Message" => "No tienes permiso para eliminar este documento."
+            ], 403); // 403 (Forbidden)
         }
 
-        // Eliminar el registro de la base de datos
-        $documento->delete();
+        try {
+            // Eliminar el archivo del sistema de archivos
+            if ($documento->URL) {
+                $rutaArchivo = str_replace(Storage::url(''), '', $documento->URL);
+                if (Storage::disk('public')->exists($rutaArchivo)) {
+                    Storage::disk('public')->delete($rutaArchivo);
+                }
+            }
 
-        return response()->json([
-            "StatusCode" => 200,
-            "ReasonPhrase" => "Documento eliminado correctamente.",
-            "Message" => "El documento ha sido eliminado con éxito."
-        ], 200); // 200 (OK)
+            // Eliminar el registro de la base de datos
+            $documento->delete();
 
-    } catch (\Exception $e) {
-        Log::error("Error al eliminar el documento: " . $e->getMessage());
-        return response()->json([
-            "StatusCode" => 500,
-            "ReasonPhrase" => "Error interno del servidor.",
-            "Message" => "Ocurrió un error al intentar eliminar el documento."
-        ], 500); // 500 (Internal Server Error)
+            return response()->json([
+                "StatusCode" => 200,
+                "ReasonPhrase" => "Documento eliminado correctamente.",
+                "Message" => "El documento ha sido eliminado con éxito."
+            ], 200); // 200 (OK)
+
+        } catch (\Exception $e) {
+            Log::error("Error al eliminar el documento: " . $e->getMessage());
+            return response()->json([
+                "StatusCode" => 500,
+                "ReasonPhrase" => "Error interno del servidor.",
+                "Message" => "Ocurrió un error al intentar eliminar el documento."
+            ], 500); // 500 (Internal Server Error)
+        }
     }
+
+    public function documentoByIDUsuario(Request $request)
+    {
+        $userId = auth()->id(); // Asumiendo que quieres los documentos del usuario autenticado
+
+        $documentos = Documento::where('IDUsuario', $userId)
+            ->whereNull('IDPublicacion')
+            ->get();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Documentos listados correctamente.',
+            'data' => $documentos
+        ], 200);
     }
 }

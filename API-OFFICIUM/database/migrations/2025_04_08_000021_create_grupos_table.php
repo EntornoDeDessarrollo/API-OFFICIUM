@@ -14,8 +14,11 @@ return new class extends Migration
         Schema::create('grupos', function (Blueprint $table) {
             $table->id('IDGrupo');
             $table->string('Nombre');
-            $table->text('Descripcion');
-            $table->string('Privacidad');
+            $table->text('Descripcion')->nullable();
+            $table->enum('Privacidad', ['Publico', 'Privado']);
+            $table->string('Foto')->nullable();
+            $table->unsignedBigInteger('Propietario'); // ID del usuario propietario
+            $table->foreign('Propietario')->references('IDUsuario')->on('users')->onDelete('cascade'); // Clave foránea a users
             $table->timestamps();
         });
     }

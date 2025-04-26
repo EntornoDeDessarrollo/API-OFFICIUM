@@ -1,9 +1,17 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Models\Documento;
+use Illuminate\Support\Str;
 use App\Models\Publicacion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\QueryException;
 
 class PublicacionController extends Controller
 {
@@ -13,6 +21,14 @@ class PublicacionController extends Controller
     public function index()
     {
         //
+        // Carga las publicaciones paginadas y sus documentos relacionados (eager loading)
+        $publicacion = Publicacion::with('documentos')->paginate(10);
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Publicaciones listadas correctamente.',
+            'data' => $publicacion
+        ], 200);
     }
 
     /**
@@ -29,6 +45,95 @@ class PublicacionController extends Controller
     public function store(Request $request)
     {
         //
+        // Obtén el ID del usuario autenticado por Sanctum
+        $userId = auth()->id();
+
+        $validator = Validator::make($request->all(), [
+            'Contenido' => 'required|string',
+            'Archivo' => 'nullable|file|image'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                "StatusCode" => 422,
+                "ReasonPhrase" => "validation errors.",
+                "Message" => $validator->errors()->all()
+            ], 422);
+        }
+
+
+        try {
+            // Crea el nueva publicacion
+            $publicacion = new Publicacion();
+            $publicacion->Contenido = $request->input('Contenido');
+            $publicacion->IDUsuario = $userId;
+            $publicacion->FechaPublicacion = now();
+            $publicacion->save();
+
+            // Manejo de la foto
+            if ($request->hasFile('Archivo')) {
+
+                $user = User::findOrFail($userId);
+                // Determina la carpeta base según el tipo de perfil
+                $carpetaBase = '';
+                if ($user->rol === 'empresa') {
+                    $carpetaBase = 'Empresa';
+                } elseif ($user->rol === 'usuario') {
+                    $carpetaBase = 'Desempleado';
+                }
+                $Archivo = $request->file('Archivo');
+                $nombreArchivoUnico = Str::uuid() . '.' . $Archivo->getClientOriginalExtension();
+                $rutaAlmacenamiento = "{$carpetaBase}/{$userId}/Publicacion"; // Misma carpeta que en el store
+                $rutaArchivoNuevo = $Archivo->storeAs($rutaAlmacenamiento, $nombreArchivoUnico, 'public');
+
+                if (!$rutaArchivoNuevo) {
+                    return response()->json([
+                        "StatusCode" => 500,
+                        "ReasonPhrase" => "Error al guardar el nuevo archivo.",
+                        "Message" => "No se pudo guardar el archivo en el sistema."
+                    ], 500);
+                }
+
+                $publicacion->Archivo = Storage::url($rutaArchivoNuevo);
+                $publicacion->save();
+
+                // Crea un nuevo registro en la tabla documentos
+                $documento = new Documento();
+                $documento->IDUsuario = $userId;
+                $documento->IDPublicacion = $publicacion->IDPublicacion; // Se asignará después de guardar la publicación
+                $documento->NombreArchivo = $nombreArchivoUnico;
+                $documento->URL = Storage::url($rutaArchivoNuevo);
+                $documento->Tipo ="Publicacion";
+                $documento->FechaSubida = now();
+                $documento->save();
+
+                // // Asigna el ID de la publicación al documento (esto debe hacerse después de guardar la publicación para tener su ID)
+                // $documento->IDPublicacion = $publicacion->IDPublicacion;
+                // $documento->save();
+            }
+
+            //$publicacion->save();
+
+            return response()->json([
+                'StatusCode' => 201,
+                'ReasonPhrase' => 'Publicacion subida correctamente.',
+                'Message' => 'Publicacion subida y guardada con éxito.',
+                'data' => $publicacion->load('documentos') // Carga la relación documentos si existe
+            ], 201); // 201 Created
+
+        } catch (QueryException $e) {
+
+            // Manejar otros errores de base de datos
+            return response()->json([
+                "StatusCode" => 500,
+                "ReasonPhrase" => "Error interno del servidor.",
+                "Message" => "Ocurrió un error al registrar la publicacion?"."\n".$e->getMessage(),
+                'SQL error: ' . $e->getMessage(),
+                'SQL query: ' . $e->getSql(),
+                'Bindings: ', $e->getBindings()
+
+            ], 500); // 500 (Internal Server Error) para otros errores
+        }
     }
 
     /**
@@ -36,7 +141,15 @@ class PublicacionController extends Controller
      */
     public function show(Publicacion $publicacion)
     {
-        //
+        // Carga la publicación y sus documentos relacionados (eager loading)
+        $publicacion->load('documentos');
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Publicacion encontrada correctamente',
+            'Message' => 'La información de la publicacion ha sido encontrada con éxito.',
+            'Data' => $publicacion,
+        ]);
     }
 
     /**
@@ -53,6 +166,97 @@ class PublicacionController extends Controller
     public function update(Request $request, Publicacion $publicacion)
     {
         //
+        $userId = auth()->id();
+
+        // Verifica si el usuario autenticado es el propietario de la publicación
+        if ($publicacion->IDUsuario !== $userId) {
+            return response()->json([
+                "StatusCode" => 403,
+                "ReasonPhrase" => "Acceso no autorizado.",
+                "Message" => "No tienes permiso para modificar esta publicación."
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'Contenido' => 'nullable|string',
+            'Archivo' => 'nullable|file|image'
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                "StatusCode" => 422,
+                "ReasonPhrase" => "validation errors.",
+                "Message" => $validator->errors()->all()
+            ], 422);
+        }
+
+        try {
+            // Actualiza el contenido si se proporciona
+            if ($request->filled('Contenido')) {
+                $publicacion->Contenido = $request->input('Contenido');
+            }
+
+            // Manejo del nuevo archivo si se proporciona
+            if ($request->hasFile('Archivo')) {
+                $user = User::findOrFail($userId);
+                $carpetaBase = '';
+                if ($user->rol === 'empresa') {
+                    $carpetaBase = 'Empresa';
+                } elseif ($user->rol === 'usuario') {
+                    $carpetaBase = 'Desempleado';
+                }
+                $archivo = $request->file('Archivo');
+                $nombreArchivoUnico = Str::uuid() . '.' . $archivo->getClientOriginalExtension();
+                $rutaAlmacenamiento = "{$carpetaBase}/{$userId}/Publicacion";
+                $rutaArchivoNuevo = $archivo->storeAs($rutaAlmacenamiento, $nombreArchivoUnico, 'public');
+
+                if (!$rutaArchivoNuevo) {
+                    return response()->json([
+                        "StatusCode" => 500,
+                        "ReasonPhrase" => "Error al guardar el nuevo archivo.",
+                        "Message" => "No se pudo guardar el nuevo archivo en el sistema."
+                    ], 500);
+                }
+
+                // Eliminar el archivo anterior del sistema de archivos (si existe)
+                if ($publicacion->Archivo) {
+                    $rutaArchivoAnterior = str_replace(Storage::url(''), '', $publicacion->Archivo);
+                    if (Storage::disk('public')->exists($rutaArchivoAnterior)) {
+                        Storage::disk('public')->delete($rutaArchivoAnterior);
+                    }
+                }
+
+                // Actualizar la ruta del archivo en la publicación
+                $publicacion->Archivo = Storage::url($rutaArchivoNuevo);
+                $publicacion->save(); // Guardar la publicación aquí para que el cambio en Archivo se refleje al buscar el documento
+
+                // Actualizar o crear el registro del documento
+                $documento = $publicacion->documentos()->firstOrNew();
+                $documento->IDUsuario = $userId;
+                $documento->IDPublicacion = $publicacion->IDPublicacion;
+                $documento->NombreArchivo = $nombreArchivoUnico;
+                $documento->URL = Storage::url($rutaArchivoNuevo);
+                $documento->Tipo = "Publicacion";
+                $documento->FechaSubida = now();
+                $documento->save();
+            } else {
+                $publicacion->save(); // Guardar la publicación incluso si solo se modificó el contenido
+            }
+
+            return response()->json([
+                'StatusCode' => 200,
+                'ReasonPhrase' => 'Publicacion actualizada correctamente.',
+                'Message' => 'La publicación ha sido actualizada con éxito.',
+                'data' => $publicacion->load('documentos')
+            ], 200);
+
+        } catch (QueryException $e) {
+            Log::error("Error al actualizar la publicacion: " . $e->getMessage());
+            return response()->json([
+                "StatusCode" => 500,
+                "ReasonPhrase" => "Error interno del servidor.",
+                "Message" => "Ocurrió un error al intentar actualizar la publicación."
+            ], 500);
+        }
     }
 
     /**
@@ -61,5 +265,42 @@ class PublicacionController extends Controller
     public function destroy(Publicacion $publicacion)
     {
         //
+        $userId = auth()->id();
+
+        // Verifica si el usuario autenticado es el propietario del documento
+        if ($publicacion->IDUsuario !== $userId) {
+            return response()->json([
+                "StatusCode" => 403,
+                "ReasonPhrase" => "Acceso no autorizado.",
+                "Message" => "No tienes permiso para eliminar esta publicacion."
+            ], 403); // 403 (Forbidden)
+        }
+
+        try {
+            // Eliminar el archivo del sistema de archivos
+            if ($publicacion->Archivo) {
+                $rutaArchivo = str_replace(Storage::url(''), '', $publicacion->Archivo);
+                if (Storage::disk('public')->exists($rutaArchivo)) {
+                    Storage::disk('public')->delete($rutaArchivo);
+                }
+            }
+
+            // Eliminar el registro de la base de datos
+            $publicacion->delete();
+
+            return response()->json([
+                "StatusCode" => 200,
+                "ReasonPhrase" => "Publicacion eliminada correctamente.",
+                "Message" => "La publicacion ha sido eliminada con éxito."
+            ], 200); // 200 (OK)
+
+        } catch (\Exception $e) {
+            Log::error("Error al eliminar la publicacion: " . $e->getMessage());
+            return response()->json([
+                "StatusCode" => 500,
+                "ReasonPhrase" => "Error interno del servidor.",
+                "Message" => "Ocurrió un error al intentar eliminar la publicacion."
+            ], 500); // 500 (Internal Server Error)
+        }
     }
 }
