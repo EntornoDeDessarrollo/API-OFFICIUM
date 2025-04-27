@@ -404,6 +404,19 @@ class GrupoController extends Controller
         }
     }
 
+    public function posts(Grupo $grupo)
+    {
+        // Carga las publicaciones del grupo con sus relaciones necesarias
+        $publicaciones = $grupo->publicaciones()->with(['user', 'documentos', 'comentarios.user'])
+        ->paginate(10);
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Publicaciones del grupo listadas correctamente.',
+            'data' => $publicaciones
+        ], 200);
+    }
+
 
 
 

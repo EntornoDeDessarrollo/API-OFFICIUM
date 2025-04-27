@@ -9,6 +9,7 @@ use App\Http\Controllers\API\DesempleadoController;
 use App\Http\Controllers\API\DocumentoController;
 use App\Http\Controllers\API\GrupoController;
 use App\Http\Controllers\API\PublicacionController;
+use App\Http\Controllers\API\ComentarioController;
 
 
 Route::get('/user', function (Request $request) {
@@ -41,8 +42,14 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::apiResource("grupo", GrupoController::class)->except(['create', 'edit']);
     Route::get('grupos/{idGrupo}/unirse', [GrupoController::class, 'join']);
     Route::get('grupos/{idGrupo}/abandonar', [GrupoController::class, 'leave']);
+    Route::get('grupos/publicaciones/{grupo}', [GrupoController::class, 'posts']);
     //Route::get('grupo/byIDUsuario', [GrupoController::class, 'listGroupUser']);
 
     Route::apiResource("publicacion", PublicacionController::class)->except(['create', 'edit']);
+    Route::get('publicacion/{publicacion}/like', [PublicacionController::class, 'like']);
+    Route::delete('publicacion/{publicacion}/unlike', [PublicacionController::class, 'unlike']);
+    Route::get('publicacion/{publicacion}/liked', [PublicacionController::class, 'liked']);
+
+    Route::apiResource("comentario", ComentarioController::class)->except(['create', 'edit']);
 
 });

@@ -36,6 +36,7 @@ class User extends Authenticatable
     public function documentos() { return $this->hasMany(Documento::class, 'IDUsuario'); }
     public function notificaciones() { return $this->hasMany(Notificacion::class, 'IDUsuario'); }
     public function grupos() { return $this->belongsToMany(Grupo::class, 'usuario_grupos', 'IDUsuario', 'IDGrupo'); }
+    public function likedPublicaciones() { return $this->belongsToMany(Publicacion::class, 'likes', 'IDUsuario', 'IDPublicacion'); }
 
     /**
      * The attributes that should be hidden for serialization.

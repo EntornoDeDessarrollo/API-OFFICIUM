@@ -13,4 +13,5 @@ class Grupo extends Model
 
     public function users() { return $this->belongsToMany(User::class, 'usuario_grupos', 'IDGrupo', 'IDUsuario'); }
     public function propietario(){ return $this->belongsTo(User::class, 'Propietario'); }
+    public function publicaciones() { return $this->hasMany(Publicacion::class, 'IDGrupo', 'IDGrupo'); }
 }

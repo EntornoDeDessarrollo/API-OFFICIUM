@@ -21,13 +21,24 @@ class PublicacionController extends Controller
     public function index()
     {
         //
-        // Carga las publicaciones paginadas y sus documentos relacionados (eager loading)
-        $publicacion = Publicacion::with('documentos')->paginate(10);
+        // Carga las publicaciones paginadas y sus relaciones:
+        // - user: El propietario de la publicación (asumiendo una relación 'user()' en Publicacion)
+        // - documentos: Los documentos asociados a la publicación
+        // - comentarios: Los comentarios asociados a la publicación, y dentro de cada comentario, su usuario ('comentarios.user')
+        $publicaciones = Publicacion::with(['user', 'documentos', 'comentarios.user', 'likes'])
+            ->whereNull('IDGrupo')
+            ->paginate(10);
+
+        // Añade un contador de likes a cada publicación en la colección
+        $publicaciones->each(function ($publicacion) {
+            $publicacion->likes_count = $publicacion->likes->count();
+            //unset($publicacion->likes); // Opcional: elimina la colección de likes para reducir el tamaño de la respuesta
+        });
 
         return response()->json([
             'StatusCode' => 200,
             'ReasonPhrase' => 'Publicaciones listadas correctamente.',
-            'data' => $publicacion
+            'data' => $publicaciones
         ], 200);
     }
 
@@ -50,7 +61,8 @@ class PublicacionController extends Controller
 
         $validator = Validator::make($request->all(), [
             'Contenido' => 'required|string',
-            'Archivo' => 'nullable|file|image'
+            'Archivo' => 'nullable|file|image',
+            'IDGrupo' => 'nullable|exists:grupos,IDGrupo', // IDGrupo es opcional y debe existir en la tabla 'grupos'
         ]);
 
         if ($validator->fails()) {
@@ -68,6 +80,12 @@ class PublicacionController extends Controller
             $publicacion->Contenido = $request->input('Contenido');
             $publicacion->IDUsuario = $userId;
             $publicacion->FechaPublicacion = now();
+
+            // Asigna el IDGrupo si se proporciona en la petición
+            if ($request->filled('IDGrupo')) {
+                $publicacion->IDGrupo = $request->input('IDGrupo');
+            }
+
             $publicacion->save();
 
             // Manejo de la foto
@@ -118,7 +136,7 @@ class PublicacionController extends Controller
                 'StatusCode' => 201,
                 'ReasonPhrase' => 'Publicacion subida correctamente.',
                 'Message' => 'Publicacion subida y guardada con éxito.',
-                'data' => $publicacion->load('documentos') // Carga la relación documentos si existe
+                'data' => $publicacion->load('documentos', 'grupo') // Carga la relación documentos si existe
             ], 201); // 201 Created
 
         } catch (QueryException $e) {
@@ -141,8 +159,14 @@ class PublicacionController extends Controller
      */
     public function show(Publicacion $publicacion)
     {
-        // Carga la publicación y sus documentos relacionados (eager loading)
-        $publicacion->load('documentos');
+        // Carga la publicación y sus relaciones:
+        // - user: El propietario de la publicación
+        // - documentos: Los documentos asociados
+        // - comentarios: Los comentarios asociados, con su respectivo usuario
+        $publicacion->load(['user', 'documentos', 'comentarios.user','likes']);
+
+        // Añade un contador de likes al objeto de la publicación
+        $publicacion->likes_count = $publicacion->likes->count();
 
         return response()->json([
             'StatusCode' => 200,
@@ -303,4 +327,60 @@ class PublicacionController extends Controller
             ], 500); // 500 (Internal Server Error)
         }
     }
+
+
+    public function like(Request $request, Publicacion $publicacion)
+    {
+        $user = auth()->id();
+
+        // Verifica si el usuario ya dio like
+        if ($publicacion->likes()->where('likes.IDUsuario', $user)->exists()) {
+            return response()->json([
+                'StatusCode' => 409, // Conflict
+                'ReasonPhrase' => 'El usuario ya ha dado like a esta publicación.',
+            ], 409);
+        }
+
+        $publicacion->likes()->attach($user);
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Like añadido correctamente.',
+            'likes_count' => $publicacion->likes()->count(),
+        ], 200);
+    }
+
+    public function unlike(Request $request, Publicacion $publicacion)
+    {
+        $user = auth()->id();
+
+        // Verifica si el usuario dio like previamente
+        if (!$publicacion->likes()->where('likes.IDUsuario', $user)->exists()) {
+            return response()->json([
+                'StatusCode' => 404, // Not Found
+                'ReasonPhrase' => 'El usuario no ha dado like a esta publicación.',
+            ], 404);
+        }
+
+        $publicacion->likes()->detach($user);
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Like eliminado correctamente.',
+            'likes_count' => $publicacion->likes()->count(),
+        ], 200);
+    }
+
+    public function liked(Publicacion $publicacion)
+    {
+        $user = auth()->id();
+        $liked = $publicacion->likes()->where('likes.IDUsuario', $user)->exists();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Estado del like obtenido correctamente.',
+            'liked' => $liked,
+        ], 200);
+    }
+
 }
