@@ -166,12 +166,11 @@ class DesempleadoController extends Controller
         $imagePath = null; // Variable para la ruta de la imagen por si falla la actualización.
 
         $validator = Validator::make($request->all(), [
-            'IDUsuario' => 'required',
             'Nombre' => 'nullable|string',
             'Apellido' => 'nullable|string',
             'DNI' => 'nullable|string',
             'Portafolios' => 'nullable|string',
-            'Disponibilidad' => 'nullable|string',
+            'Disponibilidad' => 'nullable|string|in:Tiempo completo,Medio tiempo,Temporal,Freelance',
             'Foto' => 'nullable|file|image' // Validación de imagen
         ]);
 
@@ -200,12 +199,22 @@ class DesempleadoController extends Controller
             }
 
             // Actualiza los campos proporcionados en la petición
-            $desempleado->Nombre = $request->input('Nombre', $desempleado->Nombre);
-            $desempleado->Apellido = $request->input('Apellido', $desempleado->Apellido);
-            $desempleado->DNI = $request->input('DNI', $desempleado->DNI);
-            $desempleado->Porfolios = $request->input('Portafolios', $desempleado->Portafolios);
-            $desempleado->Disponibilidad = $request->input('Disponibilidad', $desempleado->Disponibilidad);
-            $desempleado->Foto = $request->input('Foto', $desempleado->Foto);
+            if ($request->filled('Nombre')) {
+                $desempleado->Nombre = $request->input('Nombre', $desempleado->Nombre);
+            }
+            if ($request->filled('Apellido')) {
+                $desempleado->Apellido = $request->input('Apellido', $desempleado->Apellido);
+            }
+            if ($request->filled('DNI')) {
+                $desempleado->DNI = $request->input('DNI', $desempleado->DNI);
+            }
+            if ($request->filled('Porfolios')) {
+                $desempleado->Porfolios = $request->input('Porfolios', $desempleado->Portafolios);
+            }
+            if ($request->filled('Disponibilidad')) {
+                $desempleado->Disponibilidad = $request->input('Disponibilidad', $desempleado->Disponibilidad);
+            }
+
             //$desempleado->IDUsuario = $request->input('IDUsuario'); // Asegúrate de permitir la actualización si es necesario
 
             // Actualizar la imagen si se proporciona una nueva
@@ -228,11 +237,14 @@ class DesempleadoController extends Controller
 
             $desempleado->save();
 
+            $response["profile"] = $desempleado;
+
+
             return response()->json([
                 'StatusCode' => 200,
                 'ReasonPhrase' => 'Empresa actualizada correctamente',
                 'Message' => 'La información de la empresa ha sido actualizada con éxito.',
-                'data' => $desempleado
+                'Data' => $response
             ]);
 
         } catch (QueryException $e) {

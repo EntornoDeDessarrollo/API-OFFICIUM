@@ -8,8 +8,9 @@ class Administrador extends Model
 {
     //
     protected $primaryKey = 'IDAdministrador';
-    public $timestamps = false;
+    public $timestamps = true;
     protected $fillable = ['IDUsuario', 'PermisosEspeciales', 'Activo'];
+    protected $hidden = ['created_at','updated_at'];
 
     public function user() { return $this->belongsTo(User::class, 'IDUsuario'); }
 }

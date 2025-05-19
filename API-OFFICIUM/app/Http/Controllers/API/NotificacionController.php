@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Controller;
 use App\Models\Notificacion;
 use Illuminate\Http\Request;
 
@@ -13,6 +14,26 @@ class NotificacionController extends Controller
     public function index()
     {
         //
+        $userId = auth()->id();
+
+        if (!$userId) {
+            return response()->json([
+                'StatusCode' => 401,
+                'ReasonPhrase' => 'No autenticado.',
+                'Message' => 'Usuario no autenticado.',
+            ], 401);
+        }
+
+        $notificaciones = Notificacion::where('IDUsuario', $userId)
+            ->orderByDesc('FechaNotificacion')
+            ->get();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'OK.',
+            'Message' => 'Notificaciones del usuario obtenidas correctamente.',
+            'data' => $notificaciones,
+        ], 200);
     }
 
     /**
@@ -37,6 +58,7 @@ class NotificacionController extends Controller
     public function show(Notificacion $notificacion)
     {
         //
+
     }
 
     /**

@@ -47,6 +47,7 @@ class DocumentoController extends Controller
             //'IDUsuario' => 'required|exists:users,IDUsuario',
             'IDPublicacion' => 'nullable|exists:publicaciones,IDPublicacion', // Opcional, dependiendo de tu lógica
             'Tipo' => 'required|string|in:Foto,Video,PDF,Publicacion', // Define los tipos permitidos
+            'Descripcion' => 'nullable|string',
             'Archivo' => 'required|file|max:20480', // Ajusta el tamaño máximo según necesites (en KB)
         ]);
 
@@ -104,13 +105,14 @@ class DocumentoController extends Controller
             $documento->NombreArchivo = $nombreArchivoOriginal;
             $documento->URL = Storage::url($rutaArchivo); // Genera la URL pública del archivo
             $documento->FechaSubida = $fechaSubida;
+            $documento->Descripcion = $request->input('Descripcion');
             $documento->save();
 
             return response()->json([
                 'StatusCode' => 201,
                 'ReasonPhrase' => 'Documento subido correctamente.',
                 'Message' => 'El documento se ha subido y guardado con éxito.',
-                'data' => $documento
+                'Data' => $documento
             ], 201); // 201 Created
         } catch (QueryException $e) {
 
@@ -167,6 +169,91 @@ class DocumentoController extends Controller
     public function update(Request $request, Documento $documento)
     {
         //
+        // Obtén el ID del usuario autenticado
+       $userId = auth()->id();
+
+        // Verifica si el documento pertenece al usuario autenticado
+        if ($documento->IDUsuario !== $userId) {
+            return response()->json([
+                "StatusCode" => 403,
+                "ReasonPhrase" => "Acceso prohibido.",
+                "Message" => "No tienes permiso para editar este documento."
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'Descripcion' => 'required|string',
+            'Archivo' => 'required|file|max:20480', // Opcional, para reemplazar el archivo
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                "StatusCode" => 422,
+                "ReasonPhrase" => "Errores de validación.",
+                "Message" => $validator->errors()->all()
+            ], 422);
+        }
+
+        try {
+            // Actualiza la descripción si se proporciona
+            if ($request->filled('Descripcion')) {
+                $documento->Descripcion = $request->input('Descripcion');
+            }
+
+            // Procesa el reemplazo del archivo si se proporciona
+            if ($request->hasFile('Archivo')) {
+                $archivo = $request->file('Archivo');
+                $nombreArchivoOriginal = $archivo->getClientOriginalName();
+                $extension = $archivo->getClientOriginalExtension();
+                $nombreArchivoUnico = Str::uuid() . '.' . $extension;
+                $fechaSubida = now();
+
+                // Determina la ruta de almacenamiento basada en la información existente del documento
+                $rutaAlmacenamiento = pathinfo(Storage::url($documento->URL), PATHINFO_DIRNAME);
+                $rutaRelativaAlmacenamiento = str_replace(Storage::url(''), '', $rutaAlmacenamiento);
+
+                // Elimina el archivo antiguo
+                if (Storage::exists('public/' . $rutaRelativaAlmacenamiento . '/' . basename($documento->URL))) {
+                    Storage::delete('public/' . $rutaRelativaAlmacenamiento . '/' . basename($documento->URL));
+                }
+
+                // Guarda el nuevo archivo
+                $rutaArchivo = $archivo->storeAs($rutaRelativaAlmacenamiento, $nombreArchivoUnico, 'public');
+
+                if (!$rutaArchivo) {
+                    return response()->json([
+                        "StatusCode" => 500,
+                        "ReasonPhrase" => "Error al guardar el archivo.",
+                        "Message" => "No se pudo guardar el nuevo archivo en el sistema."
+                    ], 500);
+                }
+
+                // Actualiza los campos relacionados con el archivo en la base de datos
+                $documento->NombreArchivo = $nombreArchivoOriginal;
+                $documento->URL = Storage::url($rutaArchivo);
+                $documento->FechaSubida = $fechaSubida;
+            }
+
+            $documento->save();
+
+            return response()->json([
+                'StatusCode' => 200,
+                'ReasonPhrase' => 'Documento actualizado correctamente.',
+                'Message' => 'El documento se ha actualizado con éxito.',
+                'Data' => $documento
+            ], 200);
+
+        } catch (QueryException $e) {
+            return response()->json([
+                "StatusCode" => 500,
+                "ReasonPhrase" => "Error interno del servidor.",
+                "Message" => "Ocurrió un error al actualizar el documento." . "\n" . $e->getMessage(),
+                'SQL error: ' . $e->getMessage(),
+                'SQL query: ' . $e->getSql(),
+                'Bindings: ', $e->getBindings()
+            ], 500);
+        }
+
     }
 
     /**
@@ -226,6 +313,57 @@ class DocumentoController extends Controller
             'StatusCode' => 200,
             'ReasonPhrase' => 'Documentos listados correctamente.',
             'data' => $documentos
+        ], 200);
+    }
+
+    public function fotosByUsuario()
+    {
+        $userId = auth()->id();
+
+        $fotos = Documento::where('IDUsuario', $userId)
+            ->whereNull('IDPublicacion')
+            ->where('Tipo', 'Foto') // Filtra por TipoDocumento = 'Foto'
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Fotos del usuario listadas correctamente.',
+            'Data' => $fotos
+        ], 200);
+    }
+
+    public function pdfsByUsuario()
+    {
+        $userId = auth()->id();
+
+        $pdf = Documento::where('IDUsuario', $userId)
+            ->whereNull('IDPublicacion')
+            ->where('Tipo', 'PDF') // Filtra por TipoDocumento = 'Foto'
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'PDFs del usuario listadas correctamente.',
+            'Data' => $pdf
+        ], 200);
+    }
+
+    public function videosByUsuario()
+    {
+        $userId = auth()->id();
+
+        $video = Documento::where('IDUsuario', $userId)
+            ->whereNull('IDPublicacion')
+            ->where('Tipo', 'Video')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Videos del usuario listados correctamente.',
+            'Data' => $video
         ], 200);
     }
 }

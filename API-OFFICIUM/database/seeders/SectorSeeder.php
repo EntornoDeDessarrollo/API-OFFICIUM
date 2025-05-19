@@ -40,6 +40,15 @@ class SectorSeeder extends Seeder
             ['nombre' => 'Consultoría Empresarial'],
             ['nombre' => 'Seguros'],
             ['nombre' => 'Real Estate'],
+            ['nombre' => 'Diseño'],
+            ['nombre' => 'Investigación y Desarrollo'],
+            ['nombre' => 'Servicios Profesionales '],
+            ['nombre' => 'Medios de Comunicación y Entretenimiento Digital'],
+            ['nombre' => 'Bienes de Consumo '],
+            ['nombre' => 'Logística y Cadena de Suministro'],
+            ['nombre' => 'Salud Animal y Veterinaria'],
+            ['nombre' => 'Servicios Ambientales y Sostenibilidad'],
+            ['nombre' => 'Artesanía y Producción a Pequeña Escala'],
         ]);
     }
 }

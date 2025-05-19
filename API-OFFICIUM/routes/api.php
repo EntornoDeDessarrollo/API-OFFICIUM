@@ -10,6 +10,11 @@ use App\Http\Controllers\API\DocumentoController;
 use App\Http\Controllers\API\GrupoController;
 use App\Http\Controllers\API\PublicacionController;
 use App\Http\Controllers\API\ComentarioController;
+use App\Http\Controllers\API\OfertaEmpleoController;
+use App\Http\Controllers\API\AplicacionController;
+use App\Http\Controllers\API\CategoriaController;
+use App\Http\Controllers\API\SuscripcionsController;
+use App\Http\Controllers\API\NotificacionController;
 
 
 Route::get('/user', function (Request $request) {
@@ -20,7 +25,6 @@ Route::get('/user', function (Request $request) {
 Route::post("register",[AuthController::class,"register"]);
 Route::post("login", [AuthController::class, "login"]);
 Route::post("recover", [AuthController::class, "recover"]);
-Route::resource('sector', SectorController::class);
 
 Route::middleware('auth:sanctum')->group(function(){
 
@@ -38,6 +42,9 @@ Route::middleware('auth:sanctum')->group(function(){
 
     Route::apiResource("documento", DocumentoController::class);
     Route::get('documentos/byIDUsuario', [DocumentoController::class, 'documentoByIDUsuario']);
+    Route::get('documentos/fotosByIDUsuario', [DocumentoController::class, 'fotosByUsuario']);
+    Route::get('documentos/pdfsByIDUsuario', [DocumentoController::class, 'pdfsByUsuario']);
+    Route::get('documentos/videosByIDUsuario', [DocumentoController::class, 'videosByUsuario']);
 
     Route::apiResource("grupo", GrupoController::class)->except(['create', 'edit']);
     Route::get('grupos/{idGrupo}/unirse', [GrupoController::class, 'join']);
@@ -49,7 +56,24 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('publicacion/{publicacion}/like', [PublicacionController::class, 'like']);
     Route::delete('publicacion/{publicacion}/unlike', [PublicacionController::class, 'unlike']);
     Route::get('publicacion/{publicacion}/liked', [PublicacionController::class, 'liked']);
+    Route::get('publicaciones/postsByUsuario', [PublicacionController::class, 'postsByUsuario']);
 
     Route::apiResource("comentario", ComentarioController::class)->except(['create', 'edit']);
 
+    Route::get('ofertaEmpleo/buscar', [OfertaEmpleoController::class, 'buscar']);
+    Route::apiResource("ofertaEmpleo", OfertaEmpleoController::class)->except(['create', 'edit']);
+
+    Route::apiResource("aplicacion", AplicacionController::class)->except(['index', 'create', 'edit']);
+    Route::get('misAplicaciones', [AplicacionController::class, 'myApplys']);
+    Route::get('aplicacion/{oferta}/aplicaciones', [AplicacionController::class, 'applys']);
+
+    Route::resource('sector', SectorController::class)->except(['create', 'edit']);
+
+    Route::apiResource("categoria", CategoriaController::class)->except(['create', 'edit']);
+
+    Route::get('misSuscripciones', [SuscripcionsController::class, 'mySuscriptions']);
+    Route::post('suscripcion/add', [SuscripcionsController::class, 'store']);
+    Route::post('suscripcion/eliminar', [SuscripcionsController::class, 'destroy']);
+
+    Route::apiResource("notificacion", NotificacionController::class)->only(['index']);
 });

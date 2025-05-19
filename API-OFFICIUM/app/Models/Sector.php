@@ -8,7 +8,7 @@ class Sector extends Model
 {
     //
     protected $primaryKey = 'IDSector';
-    public $timestamps = false;
+    public $timestamps = true;
     protected $fillable = ['Nombre'];
 
     protected $hidden = [

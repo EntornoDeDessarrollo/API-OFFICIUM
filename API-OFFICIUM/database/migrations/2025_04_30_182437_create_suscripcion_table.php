@@ -11,17 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('aplicacions', function (Blueprint $table) {
-            $table->id('IDAplicacion');
+        Schema::create('suscripcion', function (Blueprint $table) {
             $table->unsignedBigInteger('IDDesempleado');
-            $table->unsignedBigInteger('IDOferta');
-
-            $table->enum('Estado', ['Abierta', 'Pendiente', 'Rechazada']);
-            $table->timestamp('FechaAplicacion');
-            $table->timestamps();
+            $table->unsignedBigInteger('IDCategoria');
+            $table->primary(['IDDesempleado', 'IDCategoria']);
 
             $table->foreign('IDDesempleado')->references('IDDesempleado')->on('desempleados')->onDelete('cascade');
-            $table->foreign('IDOferta')->references('IDOferta')->on('oferta_empleos')->onDelete('cascade');
+            $table->foreign('IDCategoria')->references('IDCategoria')->on('categorias')->onDelete('cascade');
         });
     }
 
@@ -30,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('aplicacions');
+        Schema::dropIfExists('suscripcion');
     }
 };

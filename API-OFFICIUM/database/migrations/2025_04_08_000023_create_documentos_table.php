@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id('IDDocumento');
             $table->unsignedBigInteger('IDUsuario');
             $table->unsignedBigInteger('IDPublicacion')->nullable();
-            $table->string('Tipo');
+            $table->string('Descripcion')->nullable();
+            $table->enum('Tipo', ['Foto', 'Video', 'PDF', 'Publicacion']);
             $table->string('NombreArchivo');
             $table->string('URL');
             $table->timestamp('FechaSubida');

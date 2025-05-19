@@ -180,11 +180,18 @@ class EmpresaController extends Controller
     public function update(Request $request, Empresa $empresa)
     {
         //
-        Log::info(" Empresa : ".$empresa);
-        $imagePath = null; // Variable para la ruta de la imagen por si falla la actualización.
+        $userId = auth()->id();
+
+        // Verifica si el usuario autenticado
+        if ($empresa->IDUsuario !== $userId) {
+            return response()->json([
+                "StatusCode" => 403,
+                "ReasonPhrase" => "Acceso no autorizado.",
+                "Message" => "No tienes permiso para modificar empresa."
+            ], 403); // 403 (Forbidden)
+        }
 
         $validator = Validator::make($request->all(), [
-            'IDUsuario' => 'required',
             'NombreEmpresa' => 'nullable|string',
             'CIF' => 'nullable|string',
             'IDSector' => 'nullable|integer',
@@ -206,8 +213,6 @@ class EmpresaController extends Controller
             $userId = auth()->id();
             //$empresa = Empresa::find($id);
 
-
-
             // Verifica si el ID del usuario autenticado coincide con el IDUsuario de la empresa
             if ($empresa->IDUsuario !== $userId) {
                 return response()->json([
@@ -218,15 +223,26 @@ class EmpresaController extends Controller
             }
 
             // Actualiza los campos proporcionados en la petición
-            $empresa->NombreEmpresa = $request->input('NombreEmpresa', $empresa->NombreEmpresa);
-            $empresa->CIF = $request->input('CIF', $empresa->CIF);
-            $empresa->IDSector = $request->input('IDSector', $empresa->IDSector);
-            $empresa->Ubicacion = $request->input('Ubicacion', $empresa->Ubicacion);
-            $empresa->SitioWeb = $request->input('SitioWeb', $empresa->SitioWeb);
+            if ($request->filled('NombreEmpresa')) {
+                $empresa->NombreEmpresa = $request->input('NombreEmpresa', $empresa->NombreEmpresa);
+            }
+            if ($request->filled('CIF')) {
+                $empresa->CIF = $request->input('CIF', $empresa->CIF);
+            }
+            if ($request->filled('IDSector')) {
+                $empresa->IDSector = $request->input('IDSector', $empresa->IDSector);
+            }
+            if ($request->filled('Ubicacion')) {
+                $empresa->Ubicacion = $request->input('Ubicacion', $empresa->Ubicacion);
+            }
+            if ($request->filled('SitioWeb')) {
+                $empresa->SitioWeb = $request->input('SitioWeb', $empresa->SitioWeb);
+            }
             //$empresa->IDUsuario = $request->input('IDUsuario'); // Asegúrate de permitir la actualización si es necesario
 
             // Actualizar la imagen si se proporciona una nueva
             if ($request->hasFile('Foto')) {
+                Log::info("Se va a modificar imagen");
                 $image = $request->file('Foto');
                 $folder = "Empresa/{$userId}/FotoPerfil"; // Usa el ID del usuario autenticado en la ruta
                 $filename = uniqid() . '.' . $image->getClientOriginalExtension();
@@ -245,11 +261,13 @@ class EmpresaController extends Controller
 
             $empresa->save();
 
+            $response["profile"] = $empresa;
+
             return response()->json([
                 'StatusCode' => 200,
                 'ReasonPhrase' => 'Empresa actualizada correctamente',
                 'Message' => 'La información de la empresa ha sido actualizada con éxito.',
-                'data' => $empresa
+                'Data' => $response
             ]);
 
         } catch (QueryException $e) {

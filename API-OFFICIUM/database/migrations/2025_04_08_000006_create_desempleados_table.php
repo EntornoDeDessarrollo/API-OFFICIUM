@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('DNI');
             $table->text('Porfolios')->nullable();
             $table->enum('Disponibilidad', ['Tiempo completo', 'Medio tiempo', 'Temporal', 'Freelance']);
+            $table->string('Ubicacion')->nullable();
             $table->string('Foto');
             $table->timestamps();
 

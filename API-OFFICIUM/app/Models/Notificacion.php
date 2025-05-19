@@ -8,8 +8,10 @@ class Notificacion extends Model
 {
     //
     protected $primaryKey = 'IDNotificacion';
-    public $timestamps = false;
-    protected $fillable = ['IDUsuario', 'Titulo', 'Mensaje', 'Leido', 'FechaNotificacion'];
+    public $timestamps = true;
+    protected $fillable = ['IDUsuario', 'Titulo', 'Mensaje', 'Leido', 'FechaNotificacion','Ruta'];
+    protected $hidden = ['created_at','updated_at'];
 
     public function user() { return $this->belongsTo(User::class, 'IDUsuario'); }
 }
+

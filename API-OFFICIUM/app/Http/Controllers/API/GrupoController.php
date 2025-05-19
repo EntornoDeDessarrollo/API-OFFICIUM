@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Models\Grupo;
 use App\Models\User;
+use App\Events\UsuarioSeUnioAGrupo;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -47,20 +48,20 @@ class GrupoController extends Controller
         $userId = auth()->id();
 
         // Verifica si el ID del usuario autenticado coincide con el IDUsuario de la empresa
-        if ($request->IDUsuario != $userId) {
-            return response()->json([
-                "StatusCode" => 403,
-                "ReasonPhrase" => "Acceso no autorizado.",
-                "Message" => "No tienes permiso para modificar esta empresa. "."UsuarioID Token :".$userId." UsuarioID Fomr :".$request->IDUsuario
-            ], 403); // 403 (Forbidden) si no coincide
-        }
+        // if ($request->IDUsuario != $userId) {
+        //     return response()->json([
+        //         "StatusCode" => 403,
+        //         "ReasonPhrase" => "Acceso no autorizado.",
+        //         "Message" => "No tienes permiso para modificar esta empresa. "."UsuarioID Token :".$userId." UsuarioID Fomr :".$request->IDUsuario
+        //     ], 403); // 403 (Forbidden) si no coincide
+        // }
 
         $validator = Validator::make($request->all(), [
-            'IDUsuario' => 'required|exists:users,IDUsuario',
+            //'IDUsuario' => 'required|exists:users,IDUsuario',
             'Nombre' => 'required|max:255|unique:grupos,Nombre',
             'Descripcion' => 'nullable|string', // Define los tipos permitidos
             'Privacidad' => 'required|string|in:Publico,Privado', // Ajusta el tamaño máximo según necesites (en KB)
-            'Foto' => 'nullable|file|image'
+            'Foto' => 'required|file|image'
         ]);
 
         if ($validator->fails()) {
@@ -340,6 +341,9 @@ class GrupoController extends Controller
 
             // Añade al usuario al grupo
             $grupo->users()->attach($user);
+
+            // Disparar el evento UsuarioSeUnioAGrupo
+            event(new UsuarioSeUnioAGrupo($grupo, $user));
 
             return response()->json([
                 'StatusCode' => 200,

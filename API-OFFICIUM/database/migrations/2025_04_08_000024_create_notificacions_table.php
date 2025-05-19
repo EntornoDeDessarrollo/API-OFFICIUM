@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('IDUsuario');
             $table->string('Titulo');
             $table->text('Mensaje');
+            $table->text('Ruta');
             $table->boolean('Leido')->default(false);
             $table->timestamp('FechaNotificacion');
             $table->timestamps();

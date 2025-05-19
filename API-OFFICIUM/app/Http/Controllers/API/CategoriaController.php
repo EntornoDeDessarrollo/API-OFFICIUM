@@ -1,9 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Controller;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\QueryException;
 
 class CategoriaController extends Controller
 {
@@ -13,6 +17,14 @@ class CategoriaController extends Controller
     public function index()
     {
         //
+        $categoria = Categoria::get();
+
+        return response()->json([
+            "StatusCode" => 200,
+            "ReasonPhrase" => "Todos las categorias",
+            'Message' => 'Sectores resividos correctamente',
+            "Data" => $categoria
+        ], 200);
     }
 
     /**

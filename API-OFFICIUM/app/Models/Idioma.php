@@ -8,8 +8,9 @@ class Idioma extends Model
 {
     //
     protected $primaryKey = 'IDIdiomas';
-    public $timestamps = false;
+    public $timestamps = true;
     protected $fillable = ['Idioma'];
+    protected $hidden = ['created_at','updated_at'];
 
     public function niveles() { return $this->hasMany(IdiomaNivel::class, 'IDIdioma'); }
 }

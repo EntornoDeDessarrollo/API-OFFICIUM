@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 
+use App\Events\PublicacionComentada;
+
 class ComentarioController extends Controller
 {
     /**
@@ -61,6 +63,10 @@ class ComentarioController extends Controller
 
             // Carga la relación con el usuario para incluirlo en la respuesta
             $comentario->load('user');
+
+            // Disparar el evento PublicacionComentada
+            event(new PublicacionComentada($comentario));
+
 
             return response()->json([
                 'StatusCode' => 201,

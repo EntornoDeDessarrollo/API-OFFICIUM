@@ -8,8 +8,9 @@ class Experiencia extends Model
 {
     //
     protected $primaryKey = 'IDExperiencia';
-    public $timestamps = false;
+    public $timestamps = true;
     protected $fillable = ['IDDesempleado', 'Empresa', 'Puesto', 'Duracion'];
+    protected $hidden = ['created_at','updated_at'];
 
     public function desempleado() { return $this->belongsTo(Desempleado::class, 'IDDesempleado'); }
 }

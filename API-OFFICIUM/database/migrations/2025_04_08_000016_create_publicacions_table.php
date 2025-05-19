@@ -19,6 +19,7 @@ return new class extends Migration
             $table->timestamp('FechaPublicacion');
             $table->integer('Like')->default(0);
             $table->string('Archivo')->nullable();
+            $table->enum('TipoArchivo', ['Foto', 'Video', 'PDF'])->nullable();
             $table->timestamps();
 
             $table->foreign('IDUsuario')->references('IDUsuario')->on('users')->onDelete('cascade');

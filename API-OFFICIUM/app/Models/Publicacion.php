@@ -8,8 +8,9 @@ class Publicacion extends Model
 {
     //
     protected $primaryKey = 'IDPublicacion';
-    public $timestamps = false;
-    protected $fillable = ['IDUsuario', 'IDGrupo', 'Contenido', 'FechaPublicacion', 'Like','Archivo'];
+    public $timestamps = true;
+    protected $fillable = ['IDUsuario', 'IDGrupo', 'Contenido', 'FechaPublicacion', 'Like','Archivo','TipoArchivo'];
+    protected $hidden = ['created_at','updated_at'];
 
     public function user() { return $this->belongsTo(User::class, 'IDUsuario'); }
     public function comentarios() { return $this->hasMany(Comentario::class, 'IDPublicacion'); }
