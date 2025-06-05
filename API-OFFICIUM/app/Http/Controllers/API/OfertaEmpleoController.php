@@ -147,7 +147,11 @@ class OfertaEmpleoController extends Controller
         // Carga la publicación y sus relaciones:
         // - empresa: El propietario de la empresa
         // - aplicaciones: Las aplicaciones asociadas
-        $ofertaEmpleo->load(['empresa:IDEmpresa,NombreEmpresa,Foto', 'aplicaciones','categoria:IDCategoria,Nombre']);
+        $ofertaEmpleo->load([
+            'empresa:IDEmpresa,IDUsuario,NombreEmpresa,Foto,IDSector',
+            'desempleadosAplicados',
+            'categoria:IDCategoria,Nombre',
+        ]);
 
         // Añade el nombre de la categoria
         $ofertaEmpleo->CategoriaNombre = $ofertaEmpleo->categoria->Nombre;
@@ -240,7 +244,7 @@ class OfertaEmpleoController extends Controller
                 'StatusCode' => 200,
                 'ReasonPhrase' => 'Oferta Empleo actualizada correctamente.',
                 'Message' => 'La oferta de empleo ha sido actualizada con éxito.',
-                'data' => $ofertaEmpleo->load('empresa','aplicaciones')
+                'Data' => $ofertaEmpleo->load('empresa','aplicaciones')
             ], 200);
 
         } catch (QueryException $e) {
@@ -296,7 +300,12 @@ class OfertaEmpleoController extends Controller
     public function buscar(Request $request)
     {
         $query = OfertaEmpleo::query()
-            ->with(['empresa', 'categoria']); // Carga las relaciones necesarias
+        ->with([
+            'empresa:IDEmpresa,NombreEmpresa,Foto', // Selecciona solo las columnas necesarias de empresa
+            'aplicaciones',
+            'categoria:IDCategoria,Nombre',       // Selecciona solo las columnas necesarias de categoria
+            'desempleadosAplicados'
+        ]);
 
         // Búsqueda por título (si el parámetro 'titulo' está presente)
         if ($request->has('titulo')) {
@@ -322,12 +331,59 @@ class OfertaEmpleoController extends Controller
 
         // Puedes añadir más condiciones 'if' para otros parámetros de búsqueda (rango de fechas, etc.)
 
-        $resultados = $query->paginate(10); // Pagina los resultados
+        $resultados = $query->paginate(2); // Pagina los resultados
 
         return response()->json([
             'StatusCode' => 200,
             'ReasonPhrase' => 'Ofertas de empleo encontradas.',
             'data' => $resultados
         ], 200);
+    }
+
+
+    public function getUserOffers()
+    {
+        // 1. Obtener el ID del usuario autenticado
+        $userId = auth()->id();
+        // 2. Buscar el perfil de Empresa asociado a este ID de usuario
+        $empresa = Empresa::where('IDUsuario', $userId)->first();
+
+        // 3. Validar si el usuario es una empresa
+        if (!$empresa) {
+            return response()->json([
+                "StatusCode" => 403, // 403 Forbidden: El usuario está autenticado pero no tiene permiso
+                "ReasonPhrase" => "Prohibido",
+                'Message' => 'El usuario de empresa no existe.',
+                "Data" => null
+            ],403);
+        }
+
+        // 4. Si es una empresa, cargar sus ofertas con las relaciones necesarias
+        $ofertas = OfertaEmpleo::where('IDEmpresa', $empresa->IDEmpresa)
+            ->with([
+                // Carga la empresa y su sector
+                'empresa:IDEmpresa,IDUsuario,NombreEmpresa,Foto,IDSector',
+                // Carga los desempleados que aplicaron a estas ofertas
+                'desempleadosAplicados',
+                // Carga la categoría
+                'categoria:IDCategoria,Nombre',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate(1);
+            //->get(); // Obtiene la colección de ofertas
+
+
+        // 5. Añadir el nombre de la categoría y el nombre del sector de la empresa a cada oferta
+        $ofertas->each(function($oferta) {
+            $oferta->CategoriaNombre = $oferta->categoria->Nombre ?? null;
+            $oferta->EmpresaSectorNombre = $oferta->empresa->sector->Nombre ?? null;
+        });
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Éxito',
+            'Message' => 'Ofertas publicadas por la empresa encontradas correctamente.',
+            'Data' => $ofertas,
+        ], 200);// Establece el código de estado HTTP de la respuesta
     }
 }

@@ -109,8 +109,10 @@ class AuthController extends Controller
 
 
             $logged = Empresa::where('IDUsuario', $user->IDUsuario)->first();
+            $rol = "Empresa";
             if (!$logged) {
                 $logged = Desempleado::where('IDUsuario', $user->IDUsuario)->first();
+                $rol = "Usuario";
             }
 
 
@@ -118,6 +120,7 @@ class AuthController extends Controller
             $response = [];
             $response["token"] = $user->createToken($user->email)->plainTextToken;
             $response["profile"] = $logged;
+            $response["rol"] = $rol;
 
             return response()->json([
                 "StatusCode" => 200,
@@ -292,6 +295,64 @@ class AuthController extends Controller
         ], 200);
     }
 
+    public function userID($idUsuario)
+    {
+
+        $user = Empresa::where('IDUsuario', $idUsuario)->first();
+        $rol = "Empresa";
+        if (!$user) {
+            $user = Desempleado::where('IDUsuario', $idUsuario)->first();
+            $rol = "Desempleado";
+        }
+
+        if (!$user) {
+            return response()->json([
+                "StatusCode" => 404,
+                "ReasonPhrase" => "Error de USUARIO",
+                'Message' => 'El usuario no existe.',
+                "Data" => null
+            ]);
+        }
+
+        return response()->json([
+            "StatusCode" => 200,
+            "ReasonPhrase" => "Usuario encontrado",
+            'Message' => 'Usuario encontrado correctamente',
+            "Data" => $user,
+            "Rol"=>$rol
+        ]);
+
+    }
+
+    public function userRol()
+    {
+
+        $idUsuario = auth()->id();
+        $user = Empresa::where('IDUsuario', $idUsuario)->first();
+        $rol = "Empresa";
+        if (!$user) {
+            $user = Desempleado::where('IDUsuario', $idUsuario)->first();
+            $rol = "Desempleado";
+        }
+
+        if (!$user) {
+            return response()->json([
+                "StatusCode" => 404,
+                "ReasonPhrase" => "Error de USUARIO",
+                'Message' => 'El usuario no existe.',
+                "Data" => null
+            ]);
+        }
+
+        return response()->json([
+            "StatusCode" => 200,
+            "ReasonPhrase" => "Usuario encontrado",
+            'Message' => 'Usuario encontrado correctamente',
+            "Data" => $user,
+            "Rol"=>$rol
+        ]);
+
+    }
 
 
 }

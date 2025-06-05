@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('publicacions', function (Blueprint $table) {
             $table->id('IDPublicacion');
             $table->unsignedBigInteger('IDUsuario');
-            $table->unsignedBigInteger('IDGrupo')->nullable(); // Campo IDGrupo nullable
+            $table->unsignedBigInteger('IDGrupo')->nullable();
             $table->text('Contenido');
             $table->timestamp('FechaPublicacion');
             $table->integer('Like')->default(0);
@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('IDUsuario')->references('IDUsuario')->on('users')->onDelete('cascade');
-            $table->foreign('IDGrupo')->references('IDGrupo')->on('grupos')->onDelete('cascade'); // O 'cascade' si la lógica lo requiere
+            $table->foreign('IDGrupo')->references('IDGrupo')->on('grupos')->onDelete('cascade');
         });
     }
 

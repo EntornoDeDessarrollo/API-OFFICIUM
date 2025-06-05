@@ -34,7 +34,7 @@ class NotificarDesempleadoEstadoAplicacion
                 'Mensaje' => "El estado de tu aplicación a la oferta '{$ofertaEmpleo->Titulo}' ha cambiado a '{$aplicacion->Estado}'.",
                 'Leido' => false,
                 'FechaNotificacion' => now(),
-                'Ruta' => 'aplicacion/' . $aplicacion->IDAplicacion, // Ruta a los detalles de la aplicación del desempleado
+                'Ruta' => "/aplicacion/{$aplicacion->IDAplicacion}"  , // Ruta a los detalles de la aplicación del desempleado
             ]);
         }
     }

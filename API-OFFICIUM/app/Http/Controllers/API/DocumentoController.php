@@ -332,6 +332,23 @@ class DocumentoController extends Controller
             'Data' => $fotos
         ], 200);
     }
+    public function getFotosByUsuario($userId)
+    {
+
+
+        $fotos = Documento::where('IDUsuario', $userId)
+            ->whereNull('IDPublicacion')
+            ->where('Tipo', 'Foto') // Filtra por TipoDocumento = 'Foto'
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Fotos del usuario listadas correctamente.',
+            'Data' => $fotos
+        ], 200);
+    }
+
 
     public function pdfsByUsuario()
     {
@@ -350,9 +367,41 @@ class DocumentoController extends Controller
         ], 200);
     }
 
+    public function getPdfsByUsuario($userId)
+    {
+
+        $pdf = Documento::where('IDUsuario', $userId)
+            ->whereNull('IDPublicacion')
+            ->where('Tipo', 'PDF') // Filtra por TipoDocumento = 'Foto'
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'PDFs del usuario listadas correctamente.',
+            'Data' => $pdf
+        ], 200);
+    }
+
     public function videosByUsuario()
     {
         $userId = auth()->id();
+
+        $video = Documento::where('IDUsuario', $userId)
+            ->whereNull('IDPublicacion')
+            ->where('Tipo', 'Video')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'Videos del usuario listados correctamente.',
+            'Data' => $video
+        ], 200);
+    }
+
+    public function getVideosByUsuario($userId)
+    {
 
         $video = Documento::where('IDUsuario', $userId)
             ->whereNull('IDPublicacion')

@@ -33,7 +33,7 @@ class NotificarEmpresaNuevaAplicacion
                 'Mensaje' => "Un nuevo desempleado ha aplicado a tu oferta: '{$ofertaEmpleo->Titulo}'.",
                 'Leido' => false,
                 'FechaNotificacion' => now(),
-                'Ruta' => 'ofertaEmpleo/' . $ofertaEmpleo->IDOferta, // Ruta a la lista de aplicantes o a la aplicación específica
+                'Ruta' => "/ofertaEmpleo/{$ofertaEmpleo->IDOferta}", // Ruta a la lista de aplicantes o a la aplicación específica
                 //'Ruta' => 'ofertas-empleo/' . $ofertaEmpleo->IDOferta . '/aplicaciones/' . $aplicacion->IDAplicacion, // Quiza podria
             ]);
         }

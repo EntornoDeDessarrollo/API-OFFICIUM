@@ -24,24 +24,47 @@ class PublicacionController extends Controller
     public function index()
     {
         //
+        $userId = auth()->id();
         // Carga las publicaciones paginadas y sus relaciones:
         // - user: El propietario de la publicación (asumiendo una relación 'user()' en Publicacion)
         // - documentos: Los documentos asociados a la publicación
         // - comentarios: Los comentarios asociados a la publicación, y dentro de cada comentario, su usuario ('comentarios.user')
-        $publicaciones = Publicacion::with(['user', 'documentos', 'comentarios.user', 'likes'])
-            ->whereNull('IDGrupo')
-            ->paginate(10);
+        // Carga las publicaciones paginadas y sus relaciones:
+        $publicacionesQuery = Publicacion::whereNull('IDGrupo')
+            ->orderBy('created_at', 'desc')
+            ->with(['documentos', 'likes'])
+            ->withCount('comentarios');
 
-        // Añade un contador de likes a cada publicación en la colección
-        $publicaciones->each(function ($publicacion) {
+
+        // 1. Carga el perfil del PROPIETARIO de la publicación (similar a postsByUsuario)
+        $publicacionesQuery->with(['user' => function ($query) {
+            $query->with(['empresa', 'desempleado']);
+        }]);
+
+        // 2. Carga los comentarios y, dentro de cada comentario, carga el perfil específico del USUARIO del comentario
+        $publicacionesQuery->with(['comentarios' => function ($query) {
+            $query->with(['user' => function ($userQuery) {
+                $userQuery->with(['empresa', 'desempleado']);
+            }]);
+            $query->orderBy('FechaComentario', 'desc'); // Opcional: ordenar los comentarios
+        }])->latest();
+
+        $publicaciones = $publicacionesQuery->paginate(5);
+
+        // Añade información adicional a cada publicación
+        $publicaciones->each(function ($publicacion) use ($userId) {
             $publicacion->likes_count = $publicacion->likes->count();
-            //unset($publicacion->likes); // Opcional: elimina la colección de likes para reducir el tamaño de la respuesta
+            // Comprueba si el usuario autenticado ha dado like a esta publicación
+            $publicacion->likedByCurrentUser = $publicacion->likes->contains('IDUsuario', $userId);
+            // Opcional: elimina la colección 'likes'
+            // unset($publicacion->likes);
         });
 
         return response()->json([
             'StatusCode' => 200,
-            'ReasonPhrase' => 'Publicaciones listadas correctamente.',
-            'data' => $publicaciones
+            'ReasonPhrase' => 'OK',
+            'Message' => 'Publicaciones listadas correctamente.',
+            'Data' => $publicaciones,
         ], 200);
     }
 
@@ -164,19 +187,55 @@ class PublicacionController extends Controller
      */
     public function show(Publicacion $publicacion)
     {
-        // Carga la publicación y sus relaciones:
-        // - user: El propietario de la publicación
-        // - documentos: Los documentos asociados
-        // - comentarios: Los comentarios asociados, con su respectivo usuario
-        $publicacion->load(['user', 'documentos', 'comentarios.user','likes']);
 
-        // Añade un contador de likes al objeto de la publicación
+        $currentAuthUserId = auth()->id(); // Obtener el ID del usuario autenticado para 'likedByCurrentUser'
+
+        // 1. Cargar el perfil del PROPIETARIO de la publicación
+        // Usamos una carga condicional basada en el rol del usuario propietario
+        $publicacion->loadCount('comentarios');
+        $publicacion->load([
+            'user' => function ($userQuery) {
+                $userQuery->with(['empresa' => function ($empresaQuery) {
+                    $empresaQuery->whereHas('user', function ($q) {
+                        $q->where('rol', 'empresa');
+                    });
+                }, 'desempleado' => function ($desempleadoQuery) {
+                    $desempleadoQuery->whereHas('user', function ($q) {
+                        $q->where('rol', 'usuario');
+                    });
+                }]);
+            },
+            'documentos', // Carga los documentos asociados
+            'likes',      // Carga la relación de likes para contar y verificar si el usuario actual le dio like
+            'comentarios' => function ($query) {
+                // Dentro de los comentarios, carga el usuario del comentario y su perfil específico (empresa/desempleado)
+                $query->with(['user' => function ($userQuery) {
+                    $userQuery->with(['empresa' => function ($empresaQuery) {
+                        $empresaQuery->whereHas('user', function ($q) {
+                            $q->where('rol', 'empresa');
+                        });
+                    }, 'desempleado' => function ($desempleadoQuery) {
+                        $desempleadoQuery->whereHas('user', function ($q) {
+                            $q->where('rol', 'usuario');
+                        });
+                    }]);
+                }])->orderBy('FechaComentario', 'desc'); //Ordenar comentarios por los más recientes ->latest();
+            }
+        ]);
+
+        // 2. Añadir el contador de likes
         $publicacion->likes_count = $publicacion->likes->count();
+
+        // 3. Comprobar si el usuario autenticado ha dado like
+        $publicacion->likedByCurrentUser = $publicacion->likes->contains('IDUsuario', $currentAuthUserId);
+
+        //Si no se necesita una colección ejemplo: 'likes' en la respuesta JSON, se puede ocultarla
+        // $publicacion->makeHidden('likes');
 
         return response()->json([
             'StatusCode' => 200,
-            'ReasonPhrase' => 'Publicacion encontrada correctamente',
-            'Message' => 'La información de la publicacion ha sido encontrada con éxito.',
+            'ReasonPhrase' => 'OK',
+            'Message' => 'La información de la publicación ha sido encontrada con éxito.',
             'Data' => $publicacion,
         ]);
     }
@@ -245,6 +304,7 @@ class PublicacionController extends Controller
                         "Message" => "No se pudo guardar el nuevo archivo en el sistema."
                     ], 500);
                 }
+
 
                 // Eliminar el archivo anterior del sistema de archivos (si existe)
                 if ($publicacion->Archivo) {
@@ -401,6 +461,7 @@ class PublicacionController extends Controller
         // Inicia la consulta de publicaciones
         $publicacionesQuery = Publicacion::where('IDUsuario', $userId)
                                          ->whereNull('IDGrupo')
+                                          ->orderBy('created_at', 'desc')
                                          ->with(['documentos', 'likes'])
                                          ->withCount('comentarios');
 
@@ -430,6 +491,7 @@ class PublicacionController extends Controller
                     });
                 }]);
             }]);
+             $query->orderBy('FechaComentario', 'desc');
         }]);
 
         // Carga el usuario propietario de la publicación base (si no se hizo antes con el condicional)
@@ -443,6 +505,86 @@ class PublicacionController extends Controller
             $publicacion->likes_count = $publicacion->likes->count();
              // Comprueba si el usuario autenticado ha dado like a esta publicación
             $publicacion->likedByCurrentUser = $publicacion->likes->contains('IDUsuario', $userId);
+            // Si quieres ocultar la colección 'likes' después de usarla, puedes hacerlo
+            //unset($publicacion->likes); // Elimina la relación 'likes' de la respuesta JSON si no la necesitas en el frontend
+        });
+
+        if ($publicaciones->isEmpty()) {
+            return response()->json([
+                'StatusCode' => 404,
+                'ReasonPhrase' => 'No Content',
+                'Message' => 'No se encontraron publicaciones para el usuario especificado sin asignación de grupo.',
+                'Data' => []
+            ], 404);
+        }
+
+        return response()->json([
+            'StatusCode' => 200,
+            'ReasonPhrase' => 'OK',
+            'Message' => 'Publicaciones obtenidas correctamente.',
+            'Data' => $publicaciones,
+        ], 200);
+
+
+    }
+
+    public function getPostsByUsuario($userId)
+    {
+
+        $user = User::findOrFail($userId);
+
+        $currentAuthUserId = auth()->id();
+
+
+        // Obtener publicaciones donde IDUsuario coincida y IDGrupo sea NULL
+        // Inicia la consulta de publicaciones
+        $publicacionesQuery = Publicacion::where('IDUsuario', $userId)
+                                         ->whereNull('IDGrupo')
+                                          ->orderBy('created_at', 'desc')
+                                         ->with(['documentos', 'likes'])
+                                         ->withCount('comentarios');
+
+
+        // 1. Carga el perfil del PROPIETARIO de la publicación
+        if ($user->rol === 'empresa') {
+            $publicacionesQuery->with('user.empresa');
+
+
+        } elseif ($user->rol === 'usuario') {
+            $publicacionesQuery->with('user.desempleado');
+        }
+
+        // 2. Carga los comentarios y, dentro de cada comentario, carga el perfil específico del USUARIO del comentario
+        $publicacionesQuery->with(['comentarios' => function ($query) {
+            $query->with(['user' => function ($userQuery) {
+                // Dentro de la relación 'user' del comentario
+                // Aquí usamos una carga selectiva basada en el 'rol' del usuario del comentario
+                $userQuery->with(['empresa' => function ($empresaQuery) {
+                    // Solo cargar 'empresa' si el rol es 'empresa'
+                    $empresaQuery->whereHas('user', function ($q) {
+                        $q->where('rol', 'empresa');
+                    });
+                }, 'desempleado' => function ($desempleadoQuery) {
+                    // Solo cargar 'desempleado' si el rol es 'usuario'
+                    $desempleadoQuery->whereHas('user', function ($q) {
+                        $q->where('rol', 'usuario');
+                    });
+                }]);
+            }]);
+             $query->orderBy('FechaComentario', 'desc');
+        }]);
+
+        // Carga el usuario propietario de la publicación base (si no se hizo antes con el condicional)
+        $publicacionesQuery->with('user');
+
+
+        $publicaciones = $publicacionesQuery->get();
+
+        // Opcional: Añadir el contador de likes para cada publicación
+        $publicaciones->each(function ($publicacion) use ($currentAuthUserId) {
+            $publicacion->likes_count = $publicacion->likes->count();
+             // Comprueba si el usuario autenticado ha dado like a esta publicación
+            $publicacion->likedByCurrentUser = $publicacion->likes->contains('IDUsuario', $currentAuthUserId);
             // Si quieres ocultar la colección 'likes' después de usarla, puedes hacerlo
             //unset($publicacion->likes); // Elimina la relación 'likes' de la respuesta JSON si no la necesitas en el frontend
         });

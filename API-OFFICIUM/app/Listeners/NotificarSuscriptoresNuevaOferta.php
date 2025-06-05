@@ -37,7 +37,7 @@ class NotificarSuscriptoresNuevaOferta
                 'Mensaje' => "Se ha publicado una nueva oferta de empleo en la categoría a la que estás suscrito: '{$ofertaEmpleo->Titulo}'. ¡Échale un vistazo!",
                 'Leido' => false,
                 'FechaNotificacion' => now(),
-                'Ruta' => 'ofertaEmpleo/' . $ofertaEmpleo->IDOferta,
+                'Ruta' => "/ofertaEmpleo/{$ofertaEmpleo->IDOferta}",
             ]);
         }
 

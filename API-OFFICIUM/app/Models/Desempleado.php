@@ -32,8 +32,8 @@ class Desempleado extends Model
     public function aplicaciones() { return $this->hasMany(Aplicacion::class, 'IDDesempleado'); }
     public function ofertasAplicadas() {
         return $this->belongsToMany(OfertaEmpleo::class, 'aplicacions', 'IDDesempleado', 'IDOferta')
-                    ->withPivot('Estado', 'FechaAplicacion', 'IDAplicacion') // Incluye columnas adicionales del pivote si las necesitas
-                    ->withTimestamps(); // Si usas timestamps en la tabla 'aplicacions'
+                    ->withPivot('Estado', 'FechaAplicacion', 'IDAplicacion') // Incluye columnas adicional 'pivote'
+                    ->withTimestamps();
     }
 
         protected static function boot()

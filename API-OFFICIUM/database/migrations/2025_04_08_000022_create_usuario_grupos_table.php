@@ -15,6 +15,8 @@ return new class extends Migration
             $table->unsignedBigInteger('IDUsuario');
             $table->unsignedBigInteger('IDGrupo');
             $table->primary(['IDUsuario', 'IDGrupo']);
+            $table->enum('EstadoMiembro', ['Unido', 'Pendiente', 'Rechazado','NoUnido'])->default('NoUnido');
+            $table->timestamps();
 
             $table->foreign('IDUsuario')->references('IDUsuario')->on('users')->onDelete('cascade');
             $table->foreign('IDGrupo')->references('IDGrupo')->on('grupos')->onDelete('cascade');

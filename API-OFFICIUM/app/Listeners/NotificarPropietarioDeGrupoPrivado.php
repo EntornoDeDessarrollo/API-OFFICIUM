@@ -2,13 +2,14 @@
 
 namespace App\Listeners;
 
-use App\Events\UsuarioSeUnioAGrupo;
+use App\Events\UsuarioSeUnioAGrupoPrivado;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Log;
 
 use App\Models\Notificacion;
 
-class NotificarPropietarioDeGrupo
+class NotificarPropietarioDeGrupoPrivado
 {
     /**
      * Create the event listener.
@@ -21,7 +22,7 @@ class NotificarPropietarioDeGrupo
     /**
      * Handle the event.
      */
-    public function handle(UsuarioSeUnioAGrupo $event): void
+    public function handle(UsuarioSeUnioAGrupoPrivado $event): void
     {
         //
         $grupo = $event->grupo;
@@ -40,11 +41,11 @@ class NotificarPropietarioDeGrupo
 
             Notificacion::create([
                 'IDUsuario' => $propietario->IDUsuario,
-                'Titulo' => 'Nuevo Miembro en tu Grupo',
-                'Mensaje' => "{$nombreUsuarioUnido} se ha unido a tu grupo '{$grupo->Nombre}'.",
+                'Titulo' => 'Solicitud en tu Grupo Privado',
+                'Mensaje' => "{$nombreUsuarioUnido} se quiere unirse a tu grupo '{$grupo->Nombre}'.",
                 'Leido' => false,
                 'FechaNotificacion' => now(),
-                'Ruta' => "/grupos/" . $grupo->IDGrupo, // Ruta al grupo
+                'Ruta' => "/grupos/{$grupo->IDGrupo}" // Ruta a la página del grupo
             ]);
         }
     }

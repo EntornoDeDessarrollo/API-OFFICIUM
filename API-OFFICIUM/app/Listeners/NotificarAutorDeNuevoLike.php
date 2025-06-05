@@ -44,7 +44,7 @@ class NotificarAutorDeNuevoLike
                 'Mensaje' => "{$nombreLiker} le ha dado like a tu publicación '{$this->limitarTexto($publicacion->Contenido)}'.", // Usamos un contenido limitado o el título si lo tienes
                 'Leido' => false,
                 'FechaNotificacion' => now(),
-                'Ruta' => 'publicacion/' . $publicacion->IDPublicacion,
+                'Ruta' => "/post/{$publicacion->IDPublicacion}",
             ]);
         }
     }

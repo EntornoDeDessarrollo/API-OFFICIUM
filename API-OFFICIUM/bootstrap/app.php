@@ -25,7 +25,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
         $exceptions->render(function (Throwable $e) {
             // Para solicitudes a la API (rutas que comienzan con 'api/')
            if (request()->is('api/*')) {
@@ -86,13 +85,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 500);
             }
                 // Para solicitudes web se devuelve null.
-                // Esto permite que Laravel continúe con el manejo de excepciones predeterminado,
-                // que generalmente implica renderizar una vista de error HTML.
-            return null;
+                return null;
            });
-
     })
     ->withEvents(discover: [
         __DIR__.'/../app/Listeners',
-    ])
-   ->create();
+    ])->create();

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('Titulo');
             $table->text('Descripcion');
             $table->string('Ubicacion');
-            $table->string('Estado');
+            $table->enum('Estado', ['Abierta', 'Cerrada', 'Temporal', 'En Proceso']);
             $table->timestamp('FechaPublicacion');
             $table->timestamps();
 

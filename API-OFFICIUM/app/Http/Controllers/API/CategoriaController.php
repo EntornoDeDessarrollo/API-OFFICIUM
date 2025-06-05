@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Categoria;
+use App\Models\Desempleado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -16,6 +17,7 @@ class CategoriaController extends Controller
      */
     public function index()
     {
+
         //
         $categoria = Categoria::get();
 
@@ -25,6 +27,7 @@ class CategoriaController extends Controller
             'Message' => 'Sectores resividos correctamente',
             "Data" => $categoria
         ], 200);
+
     }
 
     /**
@@ -73,5 +76,37 @@ class CategoriaController extends Controller
     public function destroy(Categoria $categoria)
     {
         //
+    }
+
+    public function categoryUser()
+    {
+        //
+
+        $userId = auth()->id();
+
+        $desempleado = Desempleado::where('IDUsuario', $userId)->first();
+
+        if (!$desempleado) {
+            return response()->json([
+                "StatusCode" => 404,
+                "ReasonPhrase" => "Not Found",
+                'Message' => 'No se encontró información de desempleado para el usuario autenticado.',
+                "Data" => []
+            ], 404);
+        }
+
+        $desempleadoId = $desempleado->IDDesempleado;
+
+        // Obtener las categorías a las que el usuario NO está suscrito
+        $categoriasNoSuscritas = Categoria::whereDoesntHave('suscriptores', function ($query) use ($desempleadoId) {
+            $query->where('suscripcion.IDDesempleado', $desempleadoId);
+        })->get();
+
+        return response()->json([
+            "StatusCode" => 200,
+            "ReasonPhrase" => "Todos las categorias",
+            'Message' => 'Sectores resividos correctamente',
+            "Data" => $categoriasNoSuscritas
+        ], 200);
     }
 }

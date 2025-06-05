@@ -35,7 +35,13 @@ class User extends Authenticatable
     public function comentarios() { return $this->hasMany(Comentario::class, 'IDUsuario'); }
     public function documentos() { return $this->hasMany(Documento::class, 'IDUsuario'); }
     public function notificaciones() { return $this->hasMany(Notificacion::class, 'IDUsuario'); }
-    public function grupos() { return $this->belongsToMany(Grupo::class, 'usuario_grupos', 'IDUsuario', 'IDGrupo'); }
+    public function grupos() { return $this->belongsToMany(Grupo::class, 'usuario_grupos', 'IDUsuario', 'IDGrupo')
+        ->withPivot('EstadoMiembro', 'created_at', 'updated_at'); }
+     public function getEstadoEnGrupo($grupoId)
+    {
+        $relation = $this->grupos()->where('IDGrupo', $grupoId)->first();
+        return $relation ? $relation->pivot->EstadoMiembro : 'no_unido';
+    }
     public function likedPublicaciones() { return $this->belongsToMany(Publicacion::class, 'likes', 'IDUsuario', 'IDPublicacion'); }
 
     /**

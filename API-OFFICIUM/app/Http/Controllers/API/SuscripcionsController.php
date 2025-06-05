@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Desempleado;
 use App\Models\Categoria;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class SuscripcionsController extends Controller
 {
@@ -15,10 +16,20 @@ class SuscripcionsController extends Controller
     {
 
         $userId = auth()->id();
-        $desempleado = Desempleado::where('IDUsuario', $userId)->first();
+        $desempleado =  Desempleado::where('IDUsuario', $userId)->first() ?? 0 ;
+
 
         // Verifica si el usuario autenticado
-        if ($desempleado->IDUsuario !== $userId) {
+        if (!$desempleado) {
+            return response()->json([
+                "StatusCode" => 403,
+                "ReasonPhrase" => "Acceso no autorizado.",
+                "Message" => "Las Empresas no tienes permiso para suscribirte."
+            ], 403);
+        }
+
+        // Verifica si el usuario autenticado
+        if ($desempleado->IDUsuario != $userId) {
             return response()->json([
                 "StatusCode" => 403,
                 "ReasonPhrase" => "Acceso no autorizado.",
@@ -103,11 +114,20 @@ class SuscripcionsController extends Controller
         $userId = auth()->id();
         $desempleado = Desempleado::where('IDUsuario', $userId)->with('suscripciones')->firstOrFail();
 
+        // Verifica si el usuario autenticado
+        if (!$desempleado) {
+            return response()->json([
+                "StatusCode" => 403,
+                "ReasonPhrase" => "Acceso no autorizado.",
+                "Message" => "Las Empresas no tienes permiso para suscribirte."
+            ], 403);
+        }
+
         return response()->json([
             "StatusCode" => 200,
             "ReasonPhrase" => "OK.",
             "Message" => "Suscripciones del usuario listadas correctamente.",
-            "data" => $desempleado->suscripciones
+            "Data" => $desempleado->suscripciones
         ], 200);
     }
 }

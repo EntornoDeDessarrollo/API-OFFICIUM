@@ -54,6 +54,8 @@ class AplicacionController extends Controller
             ], 404);
         }
 
+        Log::info("IDOferta: ".$request->input('IDOferta'));
+        Log::info("IDOferta: ".$request);
         // Valida los datos de la petición
         $validator = Validator::make($request->all(), [
             'IDOferta' => 'required|exists:oferta_empleos,IDOferta',
@@ -101,7 +103,7 @@ class AplicacionController extends Controller
                 "StatusCode" => 201, // Created
                 "ReasonPhrase" => "Creado.",
                 "Message" => "Tu aplicación se ha registrado correctamente.",
-                "data" => $aplicacion
+                "Data" => $aplicacion
             ], 201);
 
         } catch (Exception $e) {

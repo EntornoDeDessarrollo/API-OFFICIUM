@@ -54,7 +54,7 @@ class NotificarAutorDeNuevoComentario
                 'Mensaje' => "{$nombreComentador} ha comentado en tu publicación '{$publicacion->Titulo}': '{$this->limitarTexto($comentario->Contenido)}'.",
                 'Leido' => false,
                 'FechaNotificacion' => now(),
-                'Ruta' => 'publicacion/' . $publicacion->IDPublicacion, // Ruta a la publicación con el comentario anclado
+                'Ruta' => "/post/{$publicacion->IDPublicacion}", // Ruta a la publicación con el comentario anclado
             ]);
         }
     }
