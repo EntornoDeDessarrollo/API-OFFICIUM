@@ -28,7 +28,9 @@ class NotificarUsuarioDeAceptacionGrupoPrivado
         $usuarioAceptado = $event->usuario  ;
 
         // Obtener el nombre del usuario aceptado para el mensaje
-        $nombreUsuarioAceptado = $usuarioAceptado->desempleado->Nombre ?? $usuarioAceptado->empresa->NombreEmpresa ?? $usuarioAceptado->email;
+        $nombreUsuarioAceptado = $usuarioAceptado->desempleado->Nombre ??
+         $usuarioAceptado->empresa->NombreEmpresa ??
+         $usuarioAceptado->email;
 
         // Crear la notificación en la base de datos
         Notificacion::create([

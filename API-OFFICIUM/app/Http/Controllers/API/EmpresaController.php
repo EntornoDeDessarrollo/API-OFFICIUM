@@ -49,7 +49,6 @@ class EmpresaController extends Controller
      */
     public function store(Request $request)
     {
-
         $imagePath = null; // Variable imagen por si falla.
         //
         $validator = Validator::make($request->all(), [
@@ -61,8 +60,6 @@ class EmpresaController extends Controller
             'SitioWeb' => 'nullable|string',
             'Foto' => 'nullable|file|image' // validación de imagen
         ]);
-
-
         if($validator->fails()){
             return response()->json([
                 "StatusCode" => 422,
@@ -70,7 +67,6 @@ class EmpresaController extends Controller
                 "Message" => $validator->errors()->all()
             ],422);// 422 (Unprocessable Entity) para errores de validación
         }
-
         try {
             $empresa = new Empresa();
              // Asocia el usuario directamente con el modelo
@@ -81,9 +77,7 @@ class EmpresaController extends Controller
             $empresa->Ubicacion = $request->input('Ubicacion');
             $empresa->SitioWeb = $request->input('SitioWeb');
 
-
             // Guardar imagen
-
 
             if ($request->hasFile('Foto')) {
                 $userId = $request->input('IDUsuario');
@@ -127,7 +121,8 @@ class EmpresaController extends Controller
             return response()->json([
                 "StatusCode" => 500,
                 "ReasonPhrase" => "Error en la base de datos.",
-                "Message" => "Ha ocurrido un problema al realizar la consulta en la base de datos."."\n".$e->getMessage()."\n".$e->getSql()."\n".$e->getFile()."\n".$e->getLine(),
+                "Message" => "Ha ocurrido un problema al realizar la consulta en la base de datos."."\n".
+                $e->getMessage()."\n".$e->getSql()."\n".$e->getFile()."\n".$e->getLine(),
                 "Exception" => $e->getMessage(),
                 "Sql" => $e->getSql(),
                 "Bindings" => $e->getBindings(),
@@ -218,7 +213,8 @@ class EmpresaController extends Controller
                 return response()->json([
                     "StatusCode" => 403,
                     "ReasonPhrase" => "Acceso no autorizado.",
-                    "Message" => "No tienes permiso para modificar esta empresa. "."UsuarioID Token :".$userId." UsuarioID Fomr :".$request->IDUsuario." ID : ".$id." Empresa :".$empresa
+                    "Message" => "No tienes permiso para modificar esta empresa. "."UsuarioID Token :".
+                    $userId." UsuarioID Fomr :".$request->IDUsuario." ID : ".$id." Empresa :".$empresa
                 ], 403); // 403 (Forbidden) si no coincide
             }
 
@@ -304,7 +300,7 @@ class EmpresaController extends Controller
             return response()->json([
                 "StatusCode" => 403,
                 "ReasonPhrase" => "Acceso no autorizado.",
-                "Message" => "No tienes permiso para eliminar esta empresa.". " Empresa".$empresa->IDUsuario." IDToken: ".$userId
+                "Message" => "No tienes permiso para eliminar esta empresa."
             ], 403); // 403 (Forbidden)
         }
 

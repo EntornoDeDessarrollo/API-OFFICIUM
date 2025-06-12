@@ -97,9 +97,9 @@ class OfertaEmpleoController extends Controller
 
 
         try {
-            // Crea el nueva publicacion
+            // Crea el nueva oferta empleo
             $ofertaEmpleo = new OfertaEmpleo();
-            $ofertaEmpleo->IDEmpresa = $empresa->IDUsuario;
+            $ofertaEmpleo->IDEmpresa = $empresa->IDEmpresa;
             $ofertaEmpleo->IDCategoria = $request->input('IDCategoria');
             $ofertaEmpleo->Titulo = $request->input('Titulo');
             $ofertaEmpleo->Descripcion = $request->input('Descripcion');
